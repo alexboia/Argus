@@ -3,6 +3,14 @@
 
     var isShowingDetails = false;
 
+    function disableWindowScroll() {
+        $('body').addClass('lvdbid-stop-scrolling');
+    }
+
+    function enableWindowScroll() {
+        $('body').removeClass('lvdbid-stop-scrolling');
+    }
+
     function showLoading() {
         $.blockUI({
             message: 'Please wait...',
@@ -12,7 +20,10 @@
                 backgroundColor: '#000', 
                 opacity: .5, 
                 color: '#fff' 
-            }
+            },
+
+            onBlock: disableWindowScroll,
+            onUnblock: enableWindowScroll
         });
     }
 
@@ -41,11 +52,15 @@
                 cursor: 'normal',
                 boxShadow: '0 5px 15px rgba(0, 0, 0, 0.7)'
             },
+            onBlock: function() {
+                isShowingDetails = true;
+                disableWindowScroll();
+            },
             onUnblock: function() {
                 isShowingDetails = false;
+                enableWindowScroll();
             }
         });
-        isShowingDetails = true;
     }
 
     function listenForEscapeKey() {
