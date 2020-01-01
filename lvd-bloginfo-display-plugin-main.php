@@ -319,9 +319,15 @@ function lvbid_setup() {
         require_once dirname(__FILE__) .  '/lib/3rdParty/kint/kint.phar';
     }
 
+    //Configure Kint core:
+    //  - render the tree already expanded
+    //  - do not include the footer that shows a trace of where the Kint::dump was called
     Kint::$expanded = true;
     Kint::$display_called_from = false;
 
+    //Configure the Rich renderer:
+    //  - do not group the items in a toolbar at the bottom of the mage
+    //  - change the theme
     Kint\Renderer\RichRenderer::$folder = false;
     Kint\Renderer\RichRenderer::$theme = 'aante-light.css';
 }
