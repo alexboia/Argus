@@ -1,0 +1,58 @@
+.lvdbid-page-container {
+    margin: 10px 10px 0px 0px;
+}
+
+.lvdbid-page-container table thead th {
+    font-weight: bold;
+}
+
+.lvdbid-page-container pre {
+    white-space: pre-wrap;
+    margin: 0;
+    padding: 0;
+}
+
+.lvdbid-table-filter-container {
+    margin-bottom: 10px;
+}
+
+.lvdbid-table-filter {
+    width: 100%;
+}
+
+.lvdbid-copy-handler {
+    background: none;
+    border: 0px none;
+    cursor: pointer;
+    display: none;
+}
+
+.lvdbid-page-container table tr:hover .lvdbid-copy-handler {
+    display: inline-block;
+}
+
+.lvdbid-code-host {
+    font-family: Consolas, Monaco, monospace;
+    border: none !important;
+    background-color: rgba(0, 0, 0, 0.07);
+    color: rgb(85, 85, 85);
+    width: 300px;
+    padding: 5px;
+    height: 30px;
+    line-height: 30px;
+    vertical-align: middle;
+    box-shadow: none !important;
+    font-size: 12px !important;
+}
+
+.lvdbid-option-dump-container {
+    padding-left: 8px;
+    padding-right: 8px;
+    max-height: 100%;
+    overflow: auto;
+}
+
+.lvdbid-option-dump-container .kint-rich footer,
+.lvdbid-option-dump-container .kint-rich .kint-popup-trigger {
+    display: none;
+}
