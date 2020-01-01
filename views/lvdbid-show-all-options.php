@@ -24,10 +24,10 @@
         <tbody> 
             <?php foreach ($data->allOptions as $option): ?>
                 <tr>
-                    <td class="lvdbid-filtered-column"><code><?php echo $option['option_name']; ?></code></td>
+                    <td class="lvdbid-filtered-column"><code><?php echo esc_html($option['option_name']); ?></code></td>
                     <td>
                         <?php if (!$option['option_composite']): ?>
-                            <pre><code><?php echo $option['option_value']; ?></code></pre>
+                            <pre><code><?php echo esc_html($option['option_value']); ?></code></pre>
                         <?php else: ?>
                             <a class="lvdbid-option-details" 
                                 href="javascript:void(0)" 

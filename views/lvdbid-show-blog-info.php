@@ -22,7 +22,7 @@
             <?php foreach ($data->blogInfoKeys as $key => $info): ?>
                 <tr>
                     <td class="lvdbid-filtered-column"><code><?php echo $key; ?></code></td>
-                    <td><?php echo $info['desc']; ?></td>
+                    <td><?php echo esc_html($info['desc']); ?></td>
                     <td>
                         <input id="bloginfo-value-<?php echo $i; ?>" 
                             class="lvdbid-code-host"
@@ -43,7 +43,7 @@
                             <span class="dashicons dashicons-clipboard"></span>
                         </button>
                     </td>
-                    <td><code><?php echo $info['provider']; ?></code></td>
+                    <td><code><?php echo esc_html($info['provider']); ?></code></td>
                 </tr>
                 <?php $i++; ?>
             <?php endforeach ?>
