@@ -32,28 +32,6 @@
     defined('LVD_BID_LOADED') or die;
 ?>
 
-<style type="text/css">
-    .lvdbid-admin-notice {
-        display: block;
-        line-height: 19px;
-        padding: 11px 15px;
-        font-size: 14px;
-        text-align: left;
-        margin: 10px 20px 0 2px;
-        background-color:#fff;
-        border-left: 4px solid #0073aa;
-        box-shadow: 0 1px 1px 0 rgba(0,0,0,.1);
-    }
-</style>
-
-<div class="lvdbid-admin-notice">
-    Click <a href="<?php echo esc_url($data->blogInfoUrl); ?>" target="_blank">here</a> to see your current, detailed, blog information. Can also be accessed via main menu: "Debug blog information".
-</div>
-
-<div class="lvdbid-admin-notice">
-    Click <a href="<?php echo esc_url($data->optionsInfoUrl); ?>" target="_blank">here</a> to see a list of all the options currently stored. Can also be accessed via main menu: "Debug blog information" > "Debug blog options".
-</div>
-
-<div class="lvdbid-admin-notice">
-    Click <a href="<?php echo esc_url($data->transientsInfoUrl); ?>" target="_blank">here</a> to see a list of all the transients currently stored. Can also be accessed via main menu: "Debug blog information" > "Debug blog transients".
+<div class="lvdbid-option-not-found">
+	The <code><?php echo esc_html($transientName); ?></code> transient could not be found. It might have expired or been removed.
 </div>

@@ -66,7 +66,7 @@
     border: none !important;
     background-color: rgba(0, 0, 0, 0.07);
     color: rgb(85, 85, 85);
-    width: 300px;
+    width: 200px;
     padding: 5px;
     height: 30px;
     line-height: 30px;
@@ -90,4 +90,8 @@
 .lvdbid-stop-scrolling {
     height: 100%;
     overflow: hidden;
-  }
+}
+
+.lvdbid-option-not-found {
+    margin-top: 100px;
+}

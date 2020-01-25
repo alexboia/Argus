@@ -35,6 +35,50 @@
     var filterTimer = null;
     var $filteredHost = null;
 
+    function disableWindowScroll() {
+        $('body').addClass('lvdbid-stop-scrolling');
+    }
+
+    function enableWindowScroll() {
+        $('body').removeClass('lvdbid-stop-scrolling');
+    }
+
+    function showLoading() {
+        $.blockUI({
+            message: 'Please wait...',
+            css: {
+                border: 'none', 
+                padding: '15px', 
+                backgroundColor: '#000', 
+                opacity: .5, 
+                color: '#fff' 
+            },
+
+            onBlock: disableWindowScroll,
+            onUnblock: enableWindowScroll
+        });
+    }
+
+    function hideLoading() {
+        $.unblockUI();
+    }
+
+    function listenForEscapeKeyAndUnblockUi() {
+        var shouldUnblockFn = arguments.length == 1 && $.isFunction(arguments[0])
+            ? arguments[0]
+            : function() { 
+                return true; 
+            };
+
+        $(document).on('keydown', function(e) {
+            if (e.which == 27 && shouldUnblockFn()) {
+                $.unblockUI();
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+
     $(document).ready(function() {
         if (window.ClipboardJS != undefined) {
             clipboard = new ClipboardJS('.lvdbid-copy-handler');
@@ -65,5 +109,17 @@
                 });
             }, 100);
         });
+    });
+
+    if (window.lvdbid == undefined) {
+        window.lvdbid = {};
+    }
+
+    window.lvdbid = $.extend(window.lvdbid, {
+        showLoading: showLoading,
+        hideLoading: hideLoading,
+        enableWindowScroll: enableWindowScroll,
+        disableWindowScroll: disableWindowScroll,
+        listenForEscapeKeyAndUnblockUi: listenForEscapeKeyAndUnblockUi
     });
 })(jQuery);

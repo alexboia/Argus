@@ -34,31 +34,19 @@
     var isShowingDetails = false;
 
     function disableWindowScroll() {
-        $('body').addClass('lvdbid-stop-scrolling');
+        window.lvdbid.disableWindowScroll();
     }
 
     function enableWindowScroll() {
-        $('body').removeClass('lvdbid-stop-scrolling');
+        window.lvdbid.enableWindowScroll();
     }
 
     function showLoading() {
-        $.blockUI({
-            message: 'Please wait...',
-            css: {
-                border: 'none', 
-                padding: '15px', 
-                backgroundColor: '#000', 
-                opacity: .5, 
-                color: '#fff' 
-            },
-
-            onBlock: disableWindowScroll,
-            onUnblock: enableWindowScroll
-        });
+        window.lvdbid.showLoading();
     }
 
     function hideLoading() {
-        $.unblockUI();
+        window.lvdbid.hideLoading();
     }
 
     function getOptionDumpUrl(option) {
@@ -93,13 +81,9 @@
         });
     }
 
-    function listenForEscapeKey() {
-        $(document).on('keydown', function(e) {
-            if (e.which == 27 && isShowingDetails) {
-                $.unblockUI();
-                e.preventDefault();
-                e.stopPropagation();
-            }
+    function listenForEscapeKeyAndUnblockUi() {
+        window.lvdbid.listenForEscapeKeyAndUnblockUi(function() {
+            return isShowingDetails === true;
         });
     }
 
@@ -116,6 +100,7 @@
                 hideLoading();
                 showOptionDump(option, data);    
             }).fail(function() {
+                hideLoading();
                 alert('Could no retrieve details for option: "' + option + '"!');
             });
 
@@ -125,7 +110,7 @@
     }
 
     $(document).ready(function() {
-        listenForEscapeKey();
+        listenForEscapeKeyAndUnblockUi();
         initOptionDumpDetailsButtons();
     });
 })(jQuery);

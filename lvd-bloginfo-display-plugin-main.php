@@ -3,7 +3,7 @@
  * Plugin Name: Blog Info Display
  * Author: Alexandru Boia
  * Author URI: http://alexboia.net
- * Version: 0.1.0
+ * Version: 0.1.1
  * Description: Displays all the information provided by WordPress' get_bloginfo() function and dumps all the non-transient options. Strictly developed for learning purposes.
  * License: New BSD License
  * Text Domain: lvd-bloginfo-display
@@ -40,13 +40,21 @@
  */
 
 define('LVD_BID_LOADED', true);
+define('LVD_BID_VERSION', '0.1.1');
 define('LVD_BID_PLUGIN_ROOT', dirname(__FILE__));
 define('LVD_BID_PLUGIN_VIEWS', LVD_BID_PLUGIN_ROOT . '/views');
 define('LVD_BID_BLOGINFO_MENU_SLUG', 'lvd-bloginfo-display');
 define('LVD_BID_BLOGOPTIONS_MENU_SLUG', 'lvd-bloginfo-options-display');
+define('LVD_BID_BLOGTRANSIENTS_MENU_SLUG', 'lvd-bloginfo-transients-display');
 
-define('LVDBID_ACTION_DUMP_OPTION', 'lvdbid_dump_option');
+define('LVD_BID_ACTION_DUMP_OPTION', 'lvdbid_dump_option');
 define('LVD_BID_NONCE_DUMP_OPTION', 'lvdbid.nonce.dumpOption');
+
+define('LVD_BID_ACTION_DUMP_TRANSIENT', 'lvdbid_dump_transient');
+define('LVD_BID_NONCE_DUMP_TRANSIENT', 'lvdbid.nonce.dumpTransient');
+
+define('LVD_BID_NO_OPTION', '__LVDBID_NO_OPTION__');
+define('LVD_BID_NO_TRANSIENT', '__LVDBID_NO_TRANSIENT__');
 
 function lvdbid_get_wpdb() {
     return $GLOBALS['wpdb'];
@@ -66,6 +74,10 @@ function lvdbid_bad_request_and_die() {
     die;
 }
 
+function lvdbid_check_nonce($action) {
+    return isset($_GET['lvdbid_nonce']) && wp_verify_nonce($_GET['lvdbid_nonce'], $action);
+}
+
 function lvdbid_is_serialized_composite_type($value) {
     return is_serialized($value) && (
         preg_match('/^a:[0-9]+:\{/', $value) === 1 || //is serialized array
@@ -82,11 +94,11 @@ function lvdbid_add_stylesheets_scripts($hookSuffix) {
 
     //add the plug-in scripts and styles only 
     //  for the pages they are actually used on
-    if (!empty($page) && in_array($page, array(LVD_BID_BLOGINFO_MENU_SLUG, LVD_BID_BLOGOPTIONS_MENU_SLUG))) {
+    if (!empty($page) && in_array($page, array(LVD_BID_BLOGINFO_MENU_SLUG, LVD_BID_BLOGOPTIONS_MENU_SLUG, LVD_BID_BLOGTRANSIENTS_MENU_SLUG))) {
         wp_enqueue_style('lvdbid-plugin-css', 
             plugins_url('media/css/plugin.css', __FILE__), 
                 array(), 
-                '0.1.0', 
+                LVD_BID_VERSION, 
                 'all');
 
         wp_enqueue_script('lvdbid-clipboard-js', 
@@ -98,20 +110,28 @@ function lvdbid_add_stylesheets_scripts($hookSuffix) {
         wp_enqueue_script('lvdbid-plugin-js', 
             plugins_url('media/js/plugin.js', __FILE__), 
             array(), 
-            '0.1.0', 
+            LVD_BID_VERSION, 
+            true);
+
+        wp_enqueue_script('jquery-blockui-js', 
+            plugins_url('media/js/3rdParty/jquery.blockUI.js', __FILE__), 
+            array(), 
+            '2.66.0', 
             true);
 
         if ($page == LVD_BID_BLOGOPTIONS_MENU_SLUG) {
-            wp_enqueue_script('jquery-blockui-js', 
-                plugins_url('media/js/3rdParty/jquery.blockUI.js', __FILE__), 
-                array(), 
-                '2.66.0', 
-                true);
-
             wp_enqueue_script('lvdbid-show-all-options-js', 
                 plugins_url('media/js/show-all-options.js', __FILE__), 
                 array(), 
-                '0.1.0', 
+                LVD_BID_VERSION, 
+                true);
+        }
+
+        if ($page == LVD_BID_BLOGTRANSIENTS_MENU_SLUG) {
+            wp_enqueue_script('lvdbid-show-all-transients-js', 
+                plugins_url('media/js/show-all-transients.js', __FILE__), 
+                array(), 
+                LVD_BID_VERSION, 
                 true);
         }
     }
@@ -135,6 +155,7 @@ function lvdbid_show_admin_notice() {
             $data = new stdClass();
             $data->blogInfoUrl = lvdbid_create_admin_notice_link(LVD_BID_BLOGINFO_MENU_SLUG);
             $data->optionsInfoUrl = lvdbid_create_admin_notice_link(LVD_BID_BLOGOPTIONS_MENU_SLUG);
+            $data->transientsInfoUrl = lvdbid_create_admin_notice_link(LVD_BID_BLOGTRANSIENTS_MENU_SLUG);
             require LVD_BID_PLUGIN_VIEWS . '/lvdbid-admin-notice.php';
         }
     }
@@ -148,12 +169,19 @@ function lvdbid_add_admin_menu_links() {
             'lvdbid_show_blog_info', //callback function
             'dashicons-performance'); //menu item icon
 
-    add_submenu_page('lvd-bloginfo-display', 
+    add_submenu_page(LVD_BID_BLOGINFO_MENU_SLUG, 
         __('Debug blog options', 'lvd-bloginfo-display'), 
         __('Debug blog options', 'lvd-bloginfo-display'), 
             'manage_options', 
             LVD_BID_BLOGOPTIONS_MENU_SLUG, 
             'lvdbid_show_all_options');
+
+    add_submenu_page(LVD_BID_BLOGINFO_MENU_SLUG, 
+        __('Debug blog transients', 'lvd-bloginfo-display'),
+        __('Debug blog transients', 'lvd-bloginfo-display'),
+            'manage_options',
+            LVD_BID_BLOGTRANSIENTS_MENU_SLUG,
+            'lvdbid_show_all_transients');
 }
 
 function lvdbid_check_and_mark_if_user_came_from_admin_notice() {
@@ -274,9 +302,88 @@ function lvdbid_show_blog_info() {
     require LVD_BID_PLUGIN_VIEWS . '/lvdbid-show-blog-info.php';
 }
 
+function lvdbid_get_option_name($option) {
+    return is_array($option) 
+        ? $option['option_name'] 
+        : $option;
+}
+
 function lvdbid_format_option_value($original) {
     $value = maybe_unserialize($original);
     return var_export($value, true);
+}
+
+function lvdbid_is_site_transient_option($option) {
+    $optionName = lvdbid_get_option_name($option);
+    return preg_match('/^_site_transient_/', $optionName);
+}
+
+function lvdbid_is_transient_timeout_option($option) {
+    $optionName = lvdbid_get_option_name($option);
+    return preg_match('/^_transient_timeout_/', $optionName) 
+        || preg_match('/^_site_transient_timeout_/', $optionName);
+}
+
+function lvdbid_get_transient_name($option) {
+    $siteTransientReplCount = 0;
+    $optionName = lvdbid_get_option_name($option);
+
+    $optionName = preg_replace('/^_site_transient_(.*)$/', '$1', 
+        $optionName, 
+        -1, 
+        $siteTransientReplCount);
+    
+    if ($siteTransientReplCount < 1) {
+        $optionName = preg_replace('/^_transient_(.*)$/', '$1', $optionName);
+    }
+
+    return $optionName;
+}
+
+function lvdbid_process_option($option) {
+    $optionValue = $option['option_value'];
+    $isCompositeValue = lvdbid_is_serialized_composite_type($optionValue);
+
+    $option['option_transient_name'] = lvdbid_get_transient_name($option);
+    $option['option_composite'] = $isCompositeValue;
+    $option['option_value'] = !$isCompositeValue 
+        ? lvdbid_format_option_value($optionValue) 
+        : null;
+    
+    return $option;
+}
+
+function lvdbid_process_options_list($optionsList) {
+    foreach ($optionsList as $key => $option) {
+        $optionsList[$key] = lvdbid_process_option($option);
+    }
+    return $optionsList;
+}
+
+function lvdbid_process_transients_list($optionsList) {
+    $timeouts = array();
+    $transientsList = array();
+    
+    foreach ($optionsList as $option) {
+        if (lvdbid_is_transient_timeout_option($option)) {
+            $forTransientKey = str_replace('_timeout', '', $option['option_name']);
+            $timeouts[$forTransientKey] = !empty($option['option_value']) 
+                ? date('Y-m-d H:i:s', $option['option_value'])
+                : null;
+        } else {
+            $transientsList[] = lvdbid_process_option($option);
+        }
+    }
+
+    foreach ($transientsList as $key => $transient) {
+        $transientName = $transient['option_name'];
+        $transient['option_expiration'] = isset($timeouts[$transientName])
+            ? $timeouts[$transientName]
+            : null;
+        $transientsList[$key] = $transient;
+    }
+
+    return $transientsList;
 }
 
 function lvdbid_get_all_options() {
@@ -284,7 +391,10 @@ function lvdbid_get_all_options() {
     $allOptions = $db->get_results(
         "SELECT option_name, option_value, autoload 
             FROM $db->options 
-            WHERE option_name NOT LIKE '%_transient%' 
+            WHERE (option_name NOT LIKE '_transient_%'
+                AND option_name NOT LIKE '_transient_timeout_%'
+                AND option_name NOT LIKE '_site_transient_%'
+                AND option_name NOT LIKE '_site_transient_timeout_%')
             ORDER BY option_name", ARRAY_A
     );
 
@@ -292,17 +402,7 @@ function lvdbid_get_all_options() {
         $allOptions = array();
     }
 
-    foreach ($allOptions as $key => $option) {
-        $optionValue = $option['option_value'];
-        $isCompositeValue = lvdbid_is_serialized_composite_type($optionValue);
-
-        $allOptions[$key]['option_composite'] = $isCompositeValue;
-        $allOptions[$key]['option_value'] = !$isCompositeValue 
-            ? lvdbid_format_option_value($optionValue) 
-            : null;
-    }
-
-    return $allOptions;
+    return lvdbid_process_options_list($allOptions);
 }
 
 function lvdbid_show_all_options() {
@@ -317,7 +417,7 @@ function lvdbid_show_all_options() {
     $data->pageTitle = get_admin_page_title();
 
     $data->ajaxUrl = get_admin_url(null, 'admin-ajax.php', 'admin');
-    $data->dumpOptionAction = LVDBID_ACTION_DUMP_OPTION;
+    $data->dumpOptionAction = LVD_BID_ACTION_DUMP_OPTION;
     $data->dumpOptionNonce = wp_create_nonce(LVD_BID_NONCE_DUMP_OPTION);
 
     require LVD_BID_PLUGIN_VIEWS . '/lvdbid-show-all-options.php';
@@ -328,20 +428,92 @@ function lvdbid_dump_option() {
         lvdbid_send_forbidden_and_die();
     }
 
-    if (!isset($_GET['lvdbid_nonce']) || !wp_verify_nonce($_GET['lvdbid_nonce'], LVD_BID_NONCE_DUMP_OPTION)) {
+    if (!lvdbid_check_nonce(LVD_BID_NONCE_DUMP_OPTION)) {
         lvdbid_bad_request_and_die();
     }
 
-    $value = null;
-    $option = isset($_GET['lvdbid_option']) 
+    $optionValue = null;
+    $optionName = isset($_GET['lvdbid_option']) 
         ? $_GET['lvdbid_option'] 
         : null;
 
-    if (!empty($option)) {
-        $value = get_option($option);
+    if (!empty($optionName)) {
+        $optionValue = get_option($optionName, LVD_BID_NO_OPTION);
     }
 
-    Kint::dump($value);
+    if ($optionValue !== LVD_BID_NO_OPTION) {
+        Kint::dump($optionValue);
+    } else {
+        require LVD_BID_PLUGIN_VIEWS . '/lvdbid-option-not-found.php';
+    }
+
+    die;
+}
+
+function lvdbid_get_all_transients() {
+    $db = lvdbid_get_wpdb();
+    $allOptions = $db->get_results(
+        "SELECT option_name, option_value 
+            FROM $db->options 
+            WHERE (option_name LIKE '_transient_%'
+                OR option_name LIKE '_transient_timeout_%'
+                OR option_name LIKE '_site_transient_%'
+                OR option_name LIKE '_site_transient_timeout_%')
+            ORDER BY option_name", ARRAY_A
+    );
+
+    if (!$allOptions) {
+        $allOptions = array();
+    }
+
+    return lvdbid_process_transients_list($allOptions);
+}
+
+function lvdbid_show_all_transients() {
+    if (!current_user_can('manage_options')) {
+        lvdbid_send_forbidden_and_die();
+    }
+
+    lvdbid_check_and_mark_if_user_came_from_admin_notice();
+
+    $data = new stdClass();
+    $data->allTransients = lvdbid_get_all_transients();
+    $data->pageTitle = get_admin_page_title();
+
+    $data->ajaxUrl = get_admin_url(null, 'admin-ajax.php', 'admin');
+    $data->dumpTransientAction = LVD_BID_ACTION_DUMP_TRANSIENT;
+    $data->dumpTransientNonce = wp_create_nonce(LVD_BID_NONCE_DUMP_TRANSIENT);
+
+    require LVD_BID_PLUGIN_VIEWS . '/lvdbid-show-all-transients.php';
+}
+
+function lvdbid_dump_transient() {
+    if (!current_user_can('manage_options')) {
+        lvdbid_send_forbidden_and_die();
+    }
+
+    if (!lvdbid_check_nonce(LVD_BID_NONCE_DUMP_TRANSIENT)) {
+        lvdbid_bad_request_and_die();
+    }
+
+    $transientValue = null;
+    $transientOptionaName = isset($_GET['lvdbid_transient']) 
+        ? $_GET['lvdbid_transient'] 
+        : null;
+
+    if (!empty($transientOptionaName)) {
+        $transientName = lvdbid_get_transient_name($transientOptionaName);
+        $transientValue = !lvdbid_is_site_transient_option($transientOptionaName)
+            ? get_transient($transientName)
+            : get_site_transient($transientName);
+    }
+
+    if ($transientValue !== false) {
+        Kint::dump($transientValue);
+    } else {
+        require LVD_BID_PLUGIN_VIEWS . '/lvdbid-transient-not-found.php';
+    }
+
     die;
 }
 
@@ -367,4 +539,5 @@ add_action('init', 'lvbid_setup');
 add_action('admin_menu', 'lvdbid_add_admin_menu_links');
 add_action('all_admin_notices', 'lvdbid_show_admin_notice');
 add_action('admin_enqueue_scripts', 'lvdbid_add_stylesheets_scripts');
-add_action('wp_ajax_' . LVDBID_ACTION_DUMP_OPTION, 'lvdbid_dump_option');
+add_action('wp_ajax_' . LVD_BID_ACTION_DUMP_OPTION, 'lvdbid_dump_option');
+add_action('wp_ajax_' . LVD_BID_ACTION_DUMP_TRANSIENT, 'lvdbid_dump_transient');

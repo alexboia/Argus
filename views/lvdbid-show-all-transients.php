@@ -32,55 +32,47 @@
     defined('LVD_BID_LOADED') or die;
 ?>
 
+<script type="text/javascript">
+    var lvdbid_ajaxUrl = '<?php echo esc_js($data->ajaxUrl); ?>';
+    var lvdbid_dumpTransientNonce = '<?php echo esc_js($data->dumpTransientNonce); ?>';
+    var lvdbid_dumpTransientAction = '<?php echo esc_js($data->dumpTransientAction); ?>';
+</script>
+
 <div class="lvdbid-page-container">
     <h1><?php echo esc_html($data->pageTitle); ?></h1>
     <div class="lvdbid-table-filter-container">
         <input type="text" 
             class="regular-text lvdbid-table-filter" 
             id="lvdbid-table-filter" 
-            placeholder="Filter blog information..." 
-            data-filtered-host="#lvdbid-bloginfo-list" />
+            placeholder="Filter transients..." 
+            data-filtered-host="#lvdbid-transients-list" />
     </div>
-    <table id="lvdbid-bloginfo-list" class="widefat fixed" cellspacing="0">
+    <table id="lvdbid-transients-list" class="widefat fixed" cellspacing="0">
         <thead>
             <tr>
-                <th style="width: 150px;">Key</th>
-                <th>Description</th>
-                <th style="width: 250px;">Current value</th>
-                <th style="width: 250px;">Usage</th>
-                <th>Alternate</th>
+                <th>Name</th>
+                <th>Value</th>
+                <th>Expiration</th>
             </tr>
         </thead>
-        <tbody>
-            <?php $i = 1; ?>
-            <?php foreach ($data->blogInfoKeys as $key => $info): ?>
+        <tbody> 
+            <?php foreach ($data->allTransients as $transient): ?>
                 <tr>
-                    <td class="lvdbid-filtered-column"><code><?php echo $key; ?></code></td>
-                    <td><?php echo esc_html($info['desc']); ?></td>
+                    <td class="lvdbid-filtered-column"><code><?php echo esc_html($transient['option_name']); ?></code></td>
                     <td>
-                        <input id="bloginfo-value-<?php echo $i; ?>" 
-                            class="lvdbid-code-host"
-                            type="text" 
-                            value="<?php echo esc_attr(get_bloginfo($key)); ?>" 
-                            readonly="readonly" />
-                        <button class="lvdbid-copy-handler" data-clipboard-target="#bloginfo-value-<?php echo $i; ?>">
-                            <span class="dashicons dashicons-clipboard"></span>
-                        </button>
+                        <?php if (!$transient['option_composite']): ?>
+                            <pre><code><?php echo esc_html($transient['option_value']); ?></code></pre>
+                        <?php else: ?>
+                            <a class="lvdbid-option-details" 
+                                href="javascript:void(0)" 
+                                data-option-details="<?php echo esc_attr($transient['option_name']); ?>">Complex type. Click here to view details</a>
+                        <?php endif; ?>
                     </td>
                     <td>
-                        <input id="bloginfo-invoke-<?php echo $i; ?>" 
-                            class="lvdbid-code-host"
-                            type="text" 
-                            value="get_bloginfo('<?php echo esc_attr($key); ?>');" 
-                            readonly="readonly" />
-                        <button class="lvdbid-copy-handler" data-clipboard-target="#bloginfo-invoke-<?php echo $i; ?>">
-                            <span class="dashicons dashicons-clipboard"></span>
-                        </button>
+                        <?php echo !empty($transient['option_expiration']) ? esc_html($transient['option_expiration']) : '-'; ?>
                     </td>
-                    <td><code><?php echo esc_html($info['provider']); ?></code></td>
                 </tr>
-                <?php $i++; ?>
-            <?php endforeach ?>
+            <?php endforeach; ?>
         </tbody>
     </table>
 </div>
